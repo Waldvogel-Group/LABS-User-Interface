@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="card w-50 mx-auto">
+    <div class="card-header">
+      <h4 class="card-title">Configuration</h4>
+    </div>
+    <div class="card-body">
+      <form class="form" role="form" action="{{ url_for('experiments.new_experimental_design') }}" method="post">    
+        <div class="form-group">
+            {{form.design_name.label}}
+            {{form.design_name(class='form-control')}}
+        </div>
+        <div class="form-group">
+            {{form.station.label}}
+            {{form.station(class='form-control')}}
+        </div>
+           {{form.submit(class='btn btn-primary')}}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

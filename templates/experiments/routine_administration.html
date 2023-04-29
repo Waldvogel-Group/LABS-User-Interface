@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- create a bootstrap table and populate it with all routines -->
+<div class="container">
+    <div name="Routines Administration">
+        <h2> {{routine.name}} setting</h2>
+
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Unit</th>
+                    <th scope="col">Note</th>
+                    <th scope="col">Static Parameter</th>
+                    <th scope="col">Default Static Value</th>
+                    <th scope="col">Datatype</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for parameter in routine.get_parameters_in_routine() %}
+                <tr>
+                    <td>{{ parameter.name }}</a></td>
+                    <td>{{ parameter.unit }}</td>
+                    <td>{{ parameter.note}}</td>
+
+                    <td>
+                        <div class="form-check form-switch">
+                            <input type="checkbox" class="form-check-input"
+                                id="static-parameter-switch-{{ parameter.id }}" data-param-id="{{ parameter.id }}" {% if
+                                parameter.static_param %}checked{% endif %}>
+                            <label class="form-check-label" for="static-parameter-switch-{{ parameter.id }}">Static
+                                parameter</label>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="static-parameter-value-{{ parameter.id }}"
+                                data-param-id="{{ parameter.id }}" value="{{parameter.get_default_value()}}">
+
+                        </div>
+                    </td>
+                    <td>{{ parameter.data_type}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='toggle_static_parameter.js') }}"></script>
+{% for parameter in routine.get_parameters_in_routine() %}
+<script>
+    document.getElementById("static-parameter-switch-{{ parameter.id }}").addEventListener("change", function () {
+        toggleStatic({{ parameter.id }}, "{{ url_for('experiments.toggle_static_parameter', parameter_id = parameter.id) }}");
+  });
+    document.getElementById("static-parameter-value-{{ parameter.id }}").addEventListener("change", function () {
+        setDefaultValue({{ parameter.id }}, "{{ url_for('experiments.set_parameter_default_value', parameter_id = parameter.id) }}", this.value);
+});
+
+</script>
+{% endfor %}
+
+
+{% endblock %}

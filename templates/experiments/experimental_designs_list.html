@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div name="header">
+    <h1>Experimental Designs</h1>
+
+    <br>
+    <table class="table table-striped table-hover">
+
+      <thead>
+        <tr>
+          <th scope="col">Experimental Design</th>
+          <th scope="col">on Station</th>
+          <th scope="col">Created at</th>
+          <th scope="col">DNS Name</th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.ExperimentalDesign.name }}</td>
+          <td>{{ row.ExperimentalStation.name }}</td>
+          <td>{{ row.ExperimentalDesign.created_at.strftime('%d-%m-%Y %H:%M:%S') }}</td>
+          <td>{{ row.ExperimentalStation.dns_name }}</td>
+          <td><a href=" {{ url_for('experiments.edit_design', design_id= row.ExperimentalDesign.id) }}"
+              class="btn btn-primary">View/Edit</a></td>
+          <td><a href=" {{ url_for('experiments.delete_design', design_id= row.ExperimentalDesign.id) }}"
+              class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <a href=" {{ url_for('experiments.new_experimental_design') }}" class="btn btn-success">Add a new experimental
+      Design</a>
+
+  </div>
+</div>
+
+
+{% endblock %}

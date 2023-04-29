@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+
+<div class="container">
+    <h1>Device Details for {{ station.name }} </h1>
+</div>
+
+
+<div class="container-xxl">
+
+    <div class="row">
+        <div class="col-md-2">
+            <form method="POST" action="{{ url_for('monitoring.api_start', station_dns_name= station.dns_name ) }}">
+                <button type="submit" class="btn btn-primary">Start Experiments</button>
+            </form>
+        </div>
+        &nbsp;
+        <div class="col-md-2">
+            <form method="POST" action="{{ url_for('monitoring.api_stop', station_dns_name= station.dns_name ) }}">
+                <button type="submit" class="btn btn-danger">Stop Experiments</button>
+            </form>
+        </div>
+    </div>
+
+    <br>
+    <div id="experiment_tables"></div>
+</div>
+
+
+<section class="section">
+    <div class="container" id="device_information_header">
+
+    </div>
+    <div class="container" id="devices_wrapper">
+        <div class="container" id="devices">
+
+        </div>
+
+    </div>
+
+    <div class="container" id="plots">
+
+    </div>
+</section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-date-fns/3.0.0/chartjs-adapter-date-fns.min.js"
+    integrity="sha512-rwTcVAtpAmT3KnwlKHOqeV7ETOTUdf0uYbR4YGf3149X+X+Rx3tgJOOhqFVsyNl0oMgJSPqAOoFuf57WNN0RYA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+
+
+<!-- <script src="{{ url_for('static', filename='tables.js') }}"></script> -->
+
+<script type="module" src="{{ url_for('static', filename='tables.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='plots.js') }}"></script>
+
+
+
+{% from "_macros.html" import line_plot with context %}
+{{ line_plot() }}
+<script type="module">
+    import { Experiment_table } from "{{ url_for('static', filename='tables.js') }}";
+    import { Plot_manager } from "{{ url_for('static', filename='plots.js') }}";
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const plot_manager = new Plot_manager("{{ url_for('monitoring.chart_data', deviceID = station.id) }}", "{{ url_for('monitoring.get_active_experiment_parameter_value', station_id = station.id) }}")
+
+        const table_data_source = new EventSource("{{ url_for('monitoring.experiment_table_data',deviceID= station.id, from_timestamp=last_timestamp) }}");
+        // Array to store the div-ids for all tables, if a new table is in datastream, the div name will be registerd during div creation.
+        var table_divs = []
+
+        const tables = []
+
+        table_data_source.onmessage = function (event) {
+            const table_data = JSON.parse(event.data);
+            // console.log(table_data)
+            var table_data_sorted = {}
+            for (const experiment of table_data) {
+                (experiment.type in table_data_sorted) || (table_data_sorted[(experiment.type)] = [])
+                table_data_sorted[experiment.type].push(experiment)
+            }
+
+            for (const [experiment_type, experiment_type_data] of Object.entries(table_data_sorted)) {
+
+
+                // bool operator that checks if an object with current loop pointer experiment_type already exists
+                const experiment_table_exists = tables.some(experiment => {
+                    if (experiment.experiment_name === experiment_type) {
+                        return true
+                    }
+                    return false
+                })
+
+                // console.log(experiment_table_exists)
+                if (!experiment_table_exists) {
+                    // if the table_object is not in the tables array we create a new object and push it to the array
+                    const columns = Object.keys(experiment_type_data[0].parameters)
+                    const experiment_table = new Experiment_table(experiment_type, columns)
+                    // experiment_table.div_name = addTableDiv(experiment_type)
+                    experiment_table.data = experiment_type_data
+                    experiment_table.createGridJSTable()
+                    experiment_table.generate_row_wise_data()
+                    tables.push(experiment_table)
+                } else {
+                    // if table object does exist, we update the data and update the table
+                    var table_object = tables.find(experiment => experiment.experiment_name === experiment_type)
+                    table_object.data = experiment_type_data
+                    table_object.updateGridJSTable()
+                }
+
+            }
+        }
+
+
+
+    });
+
+</script>
+
+
+
+{% endblock %}

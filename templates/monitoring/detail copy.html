@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+
+
+{% block content %}
+<div class="container">
+    <div name="test">
+        <h1>Device Detail</h1>
+    </div>
+    <p> Devicename: {{ device.name }}</p>
+
+
+
+    <div id="finished"></div>
+
+    <div id="current"></div>
+
+    <div id="scheduled"></div>
+
+</div>
+
+{% for plot in plots %}
+<li>{{ plot }}</li>
+<div id="{{ plot.plot_id }}"> {{ plot.plot_id }}</div>
+{% for key in plot %}
+{{ plot[key] }}
+{% endfor %}
+{% endfor %}
+
+
+
+
+<div class="container" style="height: 200px;">
+    <div class=" row justify-content-center">
+        <div class="col-md-6">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="col-md-6">
+            <canvas id="canvas2"></canvas>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+<link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+
+<script src="{{ url_for('static', filename='tables.js') }}"></script>
+
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+{% from "_macros.html" import line_plot with context %}
+{{ line_plot() }}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const chart1 = linePlot('canvas', 'dataLable')
+        const chart2 = linePlot('canvas2', 'Geiler Plot')
+        console.log(chart1)
+    });
+
+</script>
+
+
+
+{% endblock %}

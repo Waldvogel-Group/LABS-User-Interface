@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- create a bootstrap table and populate it with all routines -->
+<div class="container">
+    <div name="header">
+        <h1>Routines Administration</h1>
+        {% for station in stations %}
+        <h3>Experimental Routines known in {{station.name}}</h3>
+        <a href=" {{ url_for('experiments.get_available_experiments_for_station', station_id= station.id) }}"
+            class="btn btn-primary">Download Experiments from Station</a>
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Note</th>
+                    <th scope="col">Station</th>
+                    <th scope="col">Parameters</th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for routine in station.get_all_routines() %}
+                <tr>
+                    <td>{{ routine.name }}</a></td>
+                    <td>{{ routine.note }}</td>
+                    <td>{{ station.name }}</td>
+                    <td>{{ routine.get_parameter_names_in_routine()}}</td>
+                    <td><a href=" {{ url_for('experiments.routine_administration', routine_id= routine.id) }}"
+                            class="btn btn-primary">Edit</a>
+                        <a href=" {{ url_for('experiments.delete_routine', routine_id= routine.id) }}"
+                            class="btn btn-primary"
+                            onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
+                    </td>
+                </tr>
+
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% endfor %}
+    </div>
+</div>
+
+
+
+
+{% endblock %}

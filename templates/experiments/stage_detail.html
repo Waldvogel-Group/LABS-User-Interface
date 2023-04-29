@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+
+
+  <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+  <div class="bg-primary-subtle">
+    <br>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-4 block" style="text-align: justify">
+          <h2>
+            Download Excel-Template
+          </h2>
+          <p class=>
+            Download a template for experiment submission. If the stage already contains experiments, they will be
+            included in the Excel document.
+            Select if the scope for the parameters should includ parameters, that a marked as static parameters or just
+            the dynamic parameters.
+          </p>
+          <form role="form" method="POST"
+            action="{{ url_for('experiments.design_data_download', stage_id= stage.id ) }}"
+            enctype="multipart/form-data">
+
+
+            <div class="form-group">
+              <label for="select_dl_mode">Select preferred download type.</label>
+              <br>
+              <select class="custom-select" id="select_dl_mode" name="select_dl_mode" required>
+                <option selected disabled value="">Choose...</option>
+                <option value="dynamic_only">Dynamic only.
+                </option>
+                <option value="full">Download all.</option>
+              </select>
+
+
+
+            </div>
+            <button type="submit" class="btn btn-primary">
+              Download Excel File
+            </button>
+          </form>
+        </div>
+        <div class="col-md-4 block" style="text-align: justify">
+          <h2>
+            Data Upload
+          </h2>
+
+          <p class=" text-justify">
+            Upload a filled out Excel document with the experiment design. The document must have the same structure as
+            the template. The document will be validated and the experimental runs will be created. If a
+            <kbd>run_id</kbd> is given, the corresponding run will be updated, if allowed. If a <kbd>run_id</kbd> is not
+            given, a new run will be created.
+          </p>
+
+
+
+          <form role="form" method="POST" action="{{ url_for('experiments.upload_stage', stage_id= stage.id ) }}"
+            enctype="multipart/form-data">
+            <div class="form-group">
+
+              <label class="my-1 mr-2" for="select_ul_mode">Select Upload Mode</label> <br>
+              <select class="custom-select my-1 mr-sm-2" id="select_ul_mode" name="select_ul_mode" required>
+                <option selected disabled value="">Choose...</option>
+                <option value="dynamic_only">Upload dynamic only.
+                </option>
+                <option value="full">Upload with all parameters.</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ul_file">
+                *.xlsx File input.
+              </label>
+              <input type="file" class="form-control-file" id="ul_file" name="ul_file">
+            </div>
+            <button type="submit" class="btn btn-primary">
+              Upload *.xlsx File
+            </button>
+          </form>
+        </div>
+        <div class="col-md-4 block" style="text-align: justify">
+          <h2>
+            Submit Stage
+          </h2>
+          <p>
+            Submit all runs of this stage to the queue of the station. The runs will be executed in the order of the
+            <kbd>run_id</kbd>. If the station is in pause mode the runs will be staged but not yet started.
+            To start, switch to system monitoring. If the station is running, the runs will be added to the queue and
+            executed.
+          </p>
+          <p>
+
+          </p>
+          <dl>
+            <div class="card bg-default">
+              <h5 class="card-header bg-dark-subtle text-emphasis-dark">
+                {% set device = stage.get_experimental_station() %}
+                <span class="badge text-bg-warning">{{ device.name }}</span>
+
+                <button type="button" class="btn btn-warning btn-sm">
+                  <a href="{{ url_for('monitoring.stationDetails', station_id= device.id) }}" class="link-dark">
+                    <strong>» Station
+                      Monitoring</strong></a>
+                </button>
+              </h5>
+              <div class=" card-body">
+                <p class="card-text">
+                  Status: {{ device.status }} <br>
+                  Currently running: {{ device.running_experiment_name }} <br>
+                  Runs: {{ device.current_run_number }} of {{ device.total_experiments_queued }}
+                </p>
+              </div>
+              <div class="card-footer">
+                <a href="{{ url_for('experiments.api_sent_design', stage_id= stage.id ) }}" class="btn btn-success"
+                  type="button"> Submit Stage</a>
+              </div>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <br>
+    <h2>Runs in {{ stage.name }}</h2>
+
+    <table class="table table-striped table-hover">
+      <thead>
+        <tr>
+          <th>Run ID</th>
+          {% for parameter in parameters %}
+          <th>{{ parameter.name }} ({{ parameter.unit }})</th>
+          {% endfor %}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in table_rows %}
+        <tr>
+          <td>{{ row['run_id'] }}</td>
+          {% for cell in row['run_values'] %}
+          <td id={{ cell.id }}>{{ cell.value }}</td>
+          {% endfor %}
+          <td><a
+              href=" {{ url_for('experiments.delete_experimental_run', stage_id= stage.id, run_id =row['run_id'] ) }}"
+              class="btn btn-danger">Delete Run</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <table>
+      <form id="form2" method="POST" action="{{ url_for('experiments.add_experimental_run', stage_id= stage.id) }}">
+        <thead>
+        </thead>
+        <tbody>
+          <tr>
+            <td> <button class="btn btn-primary" id="submit" type="submit" value="Create new">Add</button>
+            </td>
+            {% for parameter in parameters %}
+            <td> <input name="{{parameter.id}}" id="submit" class="form-control" required></td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </form>
+    </table>
+  </div>
+</div>
+{% endblock %}

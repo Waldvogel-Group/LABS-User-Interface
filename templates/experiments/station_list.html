@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div name="header">
+    <h1>Station list</h1>
+
+
+    <table class="table table-striped table-hover">
+
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">DNS Name</th>
+          <th scope="col">Location</th>
+          <th scope="col">API-Key</th>
+          <th scope="col"></th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.name }}</a></td>
+          <td>{{ row.dns_name }}</td>
+          <td>{{ row.location }}</td>
+          <td>{{ row.api_key }}</td>
+          <td><a href=" {{ url_for('experiments.update_station', station_id= row.id) }}"
+              class="btn btn-primary">Edit</a>
+            <a href=" {{ url_for('experiments.routines_administration') }}" class="btn btn-primary">Edit Routines</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <a href=" {{ url_for('experiments.add_new_station') }}" class="btn btn-success">Add new Station</a>
+
+  </div>
+</div>
+
+
+{% endblock %}

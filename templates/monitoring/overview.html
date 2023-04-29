@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div name="test">
+    <h1>Monitoring Overview</h1>
+  </div>
+
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        {% for row in devices|batch(3) %}
+        <div class="row">
+          {% for device in row %}
+          <div class="col-md-4">
+            <div class="card bg-default">
+              <h5 class="card-header">
+                {{ device.name }} <br>
+                {{ device.dns_name }} <br>
+                Location {{ device.location }}
+              </h5>
+              <div class="card-body">
+                <p class="card-text">
+                  Status: {{ device.status }} <br>
+                  Currently running: {{ device.running_experiment_name }} <br>
+                  Runs: {{ device.current_run_number }} of {{ device.total_experiments_queued }}
+                </p>
+              </div>
+              <div class="card-footer">
+                <a href="{{ url_for('monitoring.stationDetails', station_id= device.id) }}" class="btn btn-primary">See
+                  Details</a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <br>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+
+
+</div>
+{% endblock %}

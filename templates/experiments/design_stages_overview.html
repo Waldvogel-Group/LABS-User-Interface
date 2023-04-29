@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+
+
+  <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+
+
+
+
+  <div class="container">
+
+
+    <h2>Experimental Stages in Design {{ design.name }}</h2>
+    <br>
+    <div class="container">
+      <div class="row row-cols-auto">
+
+
+        <div class="col">
+          <form class="form" role="form" action="{{ url_for('experiments.edit_design', design_id= design.id) }}"
+            method="post" enctype="multipart/form-data">
+
+            {{form.stage_name(class='form-control')}}
+        </div>
+        <div class="col">
+
+          {{form.experimental_routine(class='form-control')}}
+
+        </div>
+
+        <div class="col">
+          {{form.submit(class='btn btn-primary')}}
+
+
+          </form>
+        </div>
+      </div>
+    </div>
+    <br>
+    <form action="{{ url_for('experiments.send_multiple_stages', design_id= design.id) }}" method="post">
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th scope="col">Send</th>
+            <th scope="col">Name</th>
+            <th scope="col">Created by</th>
+            <th scope="col">Experimental Routine</th>
+            <th scope="col">Created at</th>
+            <th scope="col">Status</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in parts %}
+          <tr>
+            <td> <input type="checkbox" name="stages_to_be_sent" value="{{ row.Stage.id }}"> </td>
+            <td>{{ row.Stage.name }}</a></td>
+            <td>{{ row.User.username |title }}</td>
+            <td>{{ row.ExperimentalRoutines.name }}</td>
+            <td>{{ row.Stage.created_at.strftime('%d-%m-%Y %H:%M:%S') }}</td>
+            <td>{{ row.Stage.status }}</td>
+            <td><a href=" {{ url_for('experiments.edit_stage', stage_id= row.Stage.id) }}"
+                class="btn btn-primary">View/Edit</a> <a
+                href=" {{ url_for('experiments.delete_stage', stage_id= row.Stage.id) }}" class="btn btn-danger"
+                onclick="return confirm('Are you sure you want to delete this item?');">Delete</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <input type="submit" class="btn btn-primary" value="Send checked stages">
+
+    </form>
+
+
+
+  </div>
+
+
+
+
+
+
+</div>
+{% endblock %}

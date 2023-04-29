@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="card w-50 mx-auto">
+    <div class="card-header">
+      <h4 class="card-title">Configuration</h4>
+    </div>
+    <div class="card-body">
+      <form class="form" role="form" action="{{ url_for('experiments.configure_station', station_id= station_to_configure.id) }}" method="post">    
+        <div class="form-group">
+            {{form.config_name.label}}
+            {{form.config_name(class='form-control')}}
+        </div>
+        <div class="form-group">
+            {{form.config_table_name.label}}
+            {{form.config_table_name(class='form-control')}}
+        </div>
+        <div class="form-group">
+            {{form.station_channels.label}}
+            {{form.station_channels(class='form-control')}}
+        </div>
+        <div class="form-group">         
+          {{form.doe_identifier_column.__html__() }} {{form.doe_identifier_column.label}}
+      </div>
+        <div class="form-group">
+            {% for parameter in form.station_parameters %}
+                {{parameter.param_name.label}}
+                {{ parameter.param_name(class='form-control') }}
+                {{parameter.param_note.label}}
+                {{ parameter.param_note(class='form-control') }}
+                {{parameter.param_dtype.label}}
+                {{ parameter.param_dtype(class='form-control') }}
+                {{parameter.param_unit.label}}
+                {{ parameter.param_unit(class='form-control') }}
+                <hr class="mt-3 mb-3"/>
+            {% endfor %}
+
+
+        </div>
+           {{form.submit(class='btn btn-primary')}}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
