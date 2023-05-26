@@ -7,25 +7,27 @@
       <h4 class="card-title">Update Experimental Station</h4>
     </div>
     <div class="card-body">
-      <form class="form" role="form" action="{{ url_for('experiments.update_station', station_id= station_to_update.id) }}" method="post">
+      <form class="form" role="form"
+        action="{{ url_for('experiments.update_station', station_id= station_to_update.id) }}" method="post">
         <div class="form-group">
           {{form.station_name.label}}
           {{form.station_name(class='form-control', value= station_to_update.name)}}
         </div>
         <div class="form-group">
-          {{form.station_dns.label}}
-          {{form.station_dns(class='form-control', value = station_to_update.dns_name)}}
+          {{form.address.label}}
+          {{form.address(class='form-control', value = station_to_update.address)}}
         </div>
         <div class="form-group">
-            {{form.station_location.label}}
-            {{form.station_location(class='form-control', value = station_to_update.location)}}
-          </div>
+          {{form.station_location.label}}
+          {{form.station_location(class='form-control', value = station_to_update.location)}}
+        </div>
         <div class="form-group">
-        {{form.station_api_key.label}}
-        {{form.station_api_key(class='form-control', value = station_to_update.api_key)}}
+          {{form.station_api_key.label}}
+          {{form.station_api_key(class='form-control', value = station_to_update.api_key)}}
         </div>
         {{form.submit(class='btn btn-secondary', value='Update Station Data')}}
-        <a href="{{ url_for('experiments.delete_station', station_id=station_to_update.id)}}" class="btn btn-danger">Delete Station</a>
+        <a href="{{ url_for('experiments.delete_station', station_id=station_to_update.id)}}"
+          class="btn btn-danger">Delete Station</a>
       </form>
     </div>
   </div>

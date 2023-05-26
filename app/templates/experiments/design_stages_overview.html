@@ -54,17 +54,17 @@
           </tr>
         </thead>
         <tbody>
-          {% for row in parts %}
+          {% for stage in design.get_experimental_stages() %}
           <tr>
-            <td> <input type="checkbox" name="stages_to_be_sent" value="{{ row.Stage.id }}"> </td>
-            <td>{{ row.Stage.name }}</a></td>
-            <td>{{ row.User.username |title }}</td>
-            <td>{{ row.ExperimentalRoutines.name }}</td>
-            <td>{{ row.Stage.created_at.strftime('%d-%m-%Y %H:%M:%S') }}</td>
-            <td>{{ row.Stage.status }}</td>
-            <td><a href=" {{ url_for('experiments.edit_stage', stage_id= row.Stage.id) }}"
+            <td> <input type="checkbox" name="stages_to_be_sent" value="{{ stage.id }}"> </td>
+            <td>{{ stage.name }}</a></td>
+            <td>{{ stage.get_owner_name() |capitalize }}</td>
+            <td>{{ stage.get_experimental_routine_name() }}</td>
+            <td>{{ stage.created_at.strftime('%d-%m-%Y %H:%M:%S') }}</td>
+            <td>{{ stage.status }}</td>
+            <td><a href=" {{ url_for('experiments.edit_stage', stage_id= stage.id) }}"
                 class="btn btn-primary">View/Edit</a> <a
-                href=" {{ url_for('experiments.delete_stage', stage_id= row.Stage.id) }}" class="btn btn-danger"
+                href=" {{ url_for('experiments.delete_stage', stage_id= stage.id) }}" class="btn btn-danger"
                 onclick="return confirm('Are you sure you want to delete this item?');">Delete</a></td>
           </tr>
           {% endfor %}

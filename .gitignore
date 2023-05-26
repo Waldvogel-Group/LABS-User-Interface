@@ -162,6 +162,8 @@ cython_debug/
 
 .automation_frontend/
 
+.venv-latest/
+
 .automation_frontend/Scripts/
 activat
 activat.bat

@@ -13,13 +13,13 @@
 
     <div class="row">
         <div class="col-md-2">
-            <form method="POST" action="{{ url_for('monitoring.api_start', station_dns_name= station.dns_name ) }}">
+            <form method="POST" action="{{ url_for('monitoring.api_start', station_address= station.address ) }}">
                 <button type="submit" class="btn btn-primary">Start Experiments</button>
             </form>
         </div>
         &nbsp;
         <div class="col-md-2">
-            <form method="POST" action="{{ url_for('monitoring.api_stop', station_dns_name= station.dns_name ) }}">
+            <form method="POST" action="{{ url_for('monitoring.api_stop', station_address= station.address ) }}">
                 <button type="submit" class="btn btn-danger">Stop Experiments</button>
             </form>
         </div>

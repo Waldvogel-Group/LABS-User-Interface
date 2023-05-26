@@ -1,7 +1,3 @@
-import imp
-from msilib.schema import Error
-from types import NoneType
-from typing import ParamSpecKwargs, ValuesView
 from flask import (
     Blueprint,
     render_template,
@@ -9,34 +5,21 @@ from flask import (
     redirect,
     flash,
     request,
-    app,
-    Response,
     abort,
-    current_app,
     session,
 )
-from flask_login import login_user, logout_user, login_required, current_user
-from flask_table import Table, Col, DatetimeCol, LinkCol
-import collections
-from requests.exceptions import HTTPError
+from flask_login import login_required, current_user
 from .helper import get_if_xlsx_file
 
 # from datetime import datetime
-from werkzeug.utils import secure_filename
-from werkzeug.datastructures import MultiDict, ImmutableMultiDict
-import pathlib
 from flask import jsonify
-import random
 from .. import db
 import json
 from .forms import (
     NewStationForm,
-    StationConfigForm,
-    ParameterForm,
     NewExperimentalDesign,
     NewExperimentalStage,
 )
-from datetime import datetime
 from .models import (
     ExperimentalStation,
     Stage,
@@ -46,30 +29,14 @@ from .models import (
     ExperimentalRuns,
     Values,
 )
-from collections import namedtuple
 import requests
 from sqlalchemy import (
     MetaData,
-    Table,
-    Column,
-    Integer,
-    String,
-    create_engine,
-    Float,
-    Boolean,
-    ForeignKeyConstraint,
-    select,
-    update,
-    delete,
-    values,
 )
-from config import config
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select, column, func, table
-from app.auth.models import User
-import pandas as pd
-import io
+from app.auth.models import Group, User
+from .helper import roles_required
+
 
 experiments_blueprint = Blueprint("experiments", __name__)
 
@@ -81,12 +48,14 @@ def experimentsOverview():
 
 
 @experiments_blueprint.route("/new_station", methods=["GET", "POST"])
+@login_required
+@roles_required("admin")
 def add_new_station():
     form = NewStationForm(request.form)
     if form.validate_on_submit():
         station = ExperimentalStation(
             name=form.station_name.data,
-            dns_name=form.station_dns.data,
+            address_name=form.address.data,
             location=form.station_location.data,
             api_key=form.station_api_key.data,
         )
@@ -99,26 +68,30 @@ def add_new_station():
 
 
 @experiments_blueprint.route("/list_stations", methods=["GET", "POST"])
+@login_required
+@roles_required("admin")
 def list_station():
-    stations = ExperimentalStation.query.all()
+    stations = ExperimentalStation.get_all_stations()
     return render_template(
         "experiments/station_list.html", title="Station List", rows=stations
     )
 
 
 @experiments_blueprint.route("/edit_station/<int:station_id>", methods=["GET", "POST"])
+@login_required
+@roles_required("admin")
 def update_station(station_id):
     form = NewStationForm()
-    station_to_update = ExperimentalStation.query.get_or_404(station_id)
+    station_to_update = ExperimentalStation.get_station_by_id(station_id)
     station_former_name = station_to_update.name
     if request.method == "POST":
-        station_to_update.name = request.form["station_name"]
-        station_to_update.dns_name = request.form["station_dns"]
-        station_to_update.api_key = request.form["station_api_key"]
-        station_to_update.location = request.form["station_location"]
-
         try:
-            station_to_update.save()
+            station_to_update.update(
+                name=request.form["station_name"],
+                address_name=request.form["address"],
+                api_key=request.form["station_api_key"],
+                location=request.form["station_location"],
+            )
             flash(
                 f"Successfuly updated existing experimental station {station_former_name}.",
                 "success",
@@ -147,6 +120,8 @@ def update_station(station_id):
 
 
 @experiments_blueprint.route("/delete_station/<int:station_id>")
+@login_required
+@roles_required("admin")
 def delete_station(station_id):
     station_to_delete = ExperimentalStation.query.get_or_404(station_id)
     try:
@@ -167,13 +142,15 @@ def delete_station(station_id):
 @experiments_blueprint.route(
     "/get_available_experiments/<int:station_id>", methods=["GET", "POST"]
 )
+@login_required
+@roles_required("admin")
 def get_available_experiments_for_station(station_id):
     station_to_configure = ExperimentalStation.get_station_by_id(station_id)
     routines_already_available = (
         ExperimentalStation.get_all_routine_names_by_station_id(station_id)
     )
 
-    request_url = f"http://{station_to_configure.dns_name}/api/get_experiment_types"
+    request_url = f"http://{station_to_configure.address_name}/api/get_experiment_types"
 
     response = requests.get(request_url)
 
@@ -203,6 +180,7 @@ def get_available_experiments_for_station(station_id):
 
 
 @experiments_blueprint.route("/new_experimental_design", methods=["GET", "POST"])
+@login_required
 # @experiments_blueprint.route("/configure_station/<int:station_id>")
 def new_experimental_design():
     availableStations = ExperimentalStation.query.all()
@@ -234,11 +212,13 @@ def new_experimental_design():
 @experiments_blueprint.route(
     "/new_experimental_stage/<int:design_id>", methods=["GET", "POST"]
 )
+@login_required
 def new_experimental_stage(design_id):
     pass
 
 
 @experiments_blueprint.route("/list_designs")
+@login_required
 def list_design():
     designs = ExperimentalDesign.query.all()
     return render_template(
@@ -247,6 +227,7 @@ def list_design():
 
 
 @experiments_blueprint.route("/add_run/<int:stage_id>", methods=["GET", "POST"])
+@login_required
 def add_experimental_run(stage_id):
     try:
         new_run = ExperimentalRuns(stage_id=stage_id)
@@ -268,6 +249,7 @@ def add_experimental_run(stage_id):
 
 
 @experiments_blueprint.route("/delete_run/<int:stage_id>", methods=["GET", "POST"])
+@login_required
 def delete_experimental_run(stage_id):
     ### get the run id to be deleted from post data
     run_id_to_deleted = int(request.args.get("run_id"))
@@ -283,25 +265,16 @@ def delete_experimental_run(stage_id):
 
 @experiments_blueprint.route("/edit_design/<int:design_id>", methods=["GET", "POST"])
 def edit_design(design_id):
-    design = ExperimentalDesign.query.get_or_404(design_id)
+    design = ExperimentalDesign.get_experimental_design_by_id(design_id)
 
-    parts = (
-        db.session.query(Stage, ExperimentalRoutines, User)
-        .filter(Stage.experimental_design_id == design_id)
-        .join(ExperimentalRoutines, User)
-        .all()
-    )
+    station = design.get_experimental_station()
 
-    station = (
-        db.session.query(ExperimentalStation)
-        .where(ExperimentalStation.id == design.station_id)
-        .first()
-    )
     availableRoutines = station.experiments_available
+
     ## check if routines are available, if no routines is configured, redirect to staion list page
     ## TODO: If user is admin -> station list, if not -> send to home
     if len(availableRoutines) == 0:
-        flash("No routines available. Create a routine in routines list.", "warning")
+        flash("No experimental routines were downloaded from the station.", "warning")
         return redirect(url_for("experiments.list_station"))
     else:
         routines_list = [(routine.id, routine.name) for routine in availableRoutines]
@@ -310,24 +283,24 @@ def edit_design(design_id):
     new_routine_form.experimental_routine.choices = routines_list
 
     if new_routine_form.validate_on_submit() and request.method == "POST":
-        new_experimental_part = Stage(
+        Stage.add_stage(
             name=new_routine_form.stage_name.data,
             user_id=current_user.id,
             experimental_Routine_id=new_routine_form.experimental_routine.data,
             experimental_design_id=design_id,
         )
-        new_experimental_part.save()
+
         return redirect(url_for("experiments.edit_design", design_id=design_id))
 
     return render_template(
         "experiments/design_stages_overview.html",
         form=new_routine_form,
         design=design,
-        parts=parts,
     )
 
 
 @experiments_blueprint.route("/edit_stage/<int:stage_id>", methods=["GET", "POST"])
+@login_required
 def edit_stage(stage_id):
     stage = Stage.query.get_or_404(stage_id)
     routine = ExperimentalRoutines.query.get_or_404(stage.experimental_Routine_id)
@@ -355,6 +328,7 @@ def edit_stage(stage_id):
 
 
 @experiments_blueprint.route("/delete_stage/<int:stage_id>", methods=["GET", "POST"])
+@login_required
 def delete_stage(stage_id):
     stage_to_delete = Stage.query.get_or_404(stage_id)
     design_id = stage_to_delete.experimental_design_id
@@ -374,6 +348,7 @@ def delete_stage(stage_id):
 
 
 @experiments_blueprint.route("/delete_design/<int:design_id>", methods=["GET", "POST"])
+@login_required
 def delete_design(design_id):
     design_to_delete = ExperimentalDesign.query.get_or_404(design_id)
     design_id = design_to_delete.id
@@ -396,61 +371,20 @@ def delete_design(design_id):
         )
 
 
-@experiments_blueprint.route("/api/data", methods=["POST"])
-def update():
-    data = request.get_json()
-    if "id" not in data:
-        abort(400)
-    design = Stage.query.get_or_404(data["experimental_designs_id"])
-    station = ExperimentalStation.query.get_or_404(design.station_id)
-
-    metadata = MetaData()
-    metadata.reflect(bind=db.engine)
-    ex_table = metadata.tables[station.parameter_table_name]
-
-    columns = ex_table.columns.keys()
-    Session = sessionmaker()
-    Session.configure(bind=db.engine)
-    session = Session()
-    ### if id exists in corresponding design, update value
-    if (
-        db.session.query(ex_table)
-        .filter_by(
-            id=data["id"], experimental_designs_id=data["experimental_designs_id"]
-        )
-        .first()
-        is not None
-    ):
-        for parameter in columns:
-            if parameter in data:
-                db.session.query(ex_table).filter_by(
-                    id=data["id"],
-                    experimental_designs_id=data["experimental_designs_id"],
-                ).update({parameter: data[parameter]})
-                db.session.commit()
-    else:
-        pass
-    return "", 204
-
-
 @experiments_blueprint.route("/list_experimental_designs", methods=["GET", "POST"])
+@login_required
 def list_experimental_designs():
-    ### Table join to give Device information istead of abstract id.
-    results = (
-        db.session.query(ExperimentalDesign, ExperimentalStation)
-        .join(ExperimentalStation)
-        .all()
-    )
+    desings = ExperimentalDesign.get_all_designs_for_user(current_user.id)
 
-    # results = db.session.query(ExperimentalDesigns).all()
     return render_template(
         "experiments/experimental_designs_list.html",
         title="Experimental Designs-List",
-        rows=results,
+        rows=desings,
     )
 
 
 @experiments_blueprint.route("/dl_design/<int:stage_id>", methods=["POST"])
+@login_required
 def design_data_download(stage_id):
     """This function grabs all runs for a given stage_id and builds a row<->run wise dataframe, which gets converted to an excel spreadsheet. The spreadsheat is returnd as a file download.
 
@@ -470,6 +404,7 @@ def design_data_download(stage_id):
 
 
 @experiments_blueprint.route("/api/sent_design/<int:stage_id>", methods=["GET", "POST"])
+@login_required
 def api_sent_design(stage_id):
     stage = Stage.get_stage_by_id(stage_id)
 
@@ -479,6 +414,7 @@ def api_sent_design(stage_id):
 
 
 @experiments_blueprint.route("/upload_stage/<int:stage_id>", methods=["POST"])
+@login_required
 def upload_stage(stage_id):
     if request.form["select_ul_mode"] == "dynamic_only":
         dynamic_only = True
@@ -520,10 +456,11 @@ def design_data_upload(stage_id, file, dynamic_only):
 
 
 @experiments_blueprint.route("/send_multiple_stages/<int:design_id>", methods=["POST"])
+@login_required
 def send_multiple_stages(design_id):
     ## check the stage ids for the submitted design id.
     design = ExperimentalDesign.query.get_or_404(design_id)
-    allowed_stages_ids = [design.id for design in design.desings]
+    allowed_stages_ids = [design.id for design in design.stages]
     if request.method == "POST":
         ## get list of submitted design ids
         id_list = [int(id) for id in request.form.getlist("stages_to_be_sent")]
@@ -540,6 +477,8 @@ def send_multiple_stages(design_id):
 
 
 @experiments_blueprint.route("/routines_administration", methods=["GET", "POST"])
+@login_required
+@roles_required("admin")
 def routines_administration():
     routines = ExperimentalRoutines.get_routines()
     stations = ExperimentalStation.get_all_stations()
@@ -551,6 +490,8 @@ def routines_administration():
 @experiments_blueprint.route(
     "/routine_administration/<int:routine_id>", methods=["GET", "POST"]
 )
+@login_required
+@roles_required("admin")
 def routine_administration(routine_id):
     routine = ExperimentalRoutines.get_routine(routine_id)
 
@@ -567,6 +508,8 @@ def update_routine(routine_id):
 @experiments_blueprint.route(
     "/delete_routine/<int:routine_id>", methods=["GET", "POST"]
 )
+@login_required
+@roles_required("admin")
 def delete_routine(routine_id):
     routine = ExperimentalRoutines.get_routine(routine_id)
     routine.delete()
@@ -576,6 +519,8 @@ def delete_routine(routine_id):
 @experiments_blueprint.route(
     "/toggle_static_parameter/<int:parameter_id>", methods=["GET", "POST"]
 )
+@login_required
+@roles_required("admin")
 def toggle_static_parameter(parameter_id):
     parameter = Parameters.get_parameter(parameter_id)
     parameter.toggle_static_parameter()
@@ -586,9 +531,87 @@ def toggle_static_parameter(parameter_id):
 @experiments_blueprint.route(
     "/set_default_value/<int:parameter_id>", methods=["GET", "POST"]
 )
+@login_required
+@roles_required("admin")
 def set_parameter_default_value(parameter_id):
     default_value = request.json.get("default_value")
     parameter = Parameters.get_parameter(parameter_id)
     parameter.set_default_value(default_value)
     response = jsonify(success=True)
     return response
+
+
+@experiments_blueprint.route("/design/<int:design_id>/share/user", methods=["POST"])
+@login_required
+def share_design_with_user(design_id):
+    user_id = request.form.get("user_id")
+    user = User.get_user_by_token(user_id)
+    design = ExperimentalDesign.get_experimental_design_by_id(design_id)
+
+    if design.user_id != current_user.id:
+        flash("You are not allowed to share this design.", "warning")
+        return 403
+
+    if user and design:
+        design.share_with_user(user)
+        flash("Design shared with group successfully!", "success")
+        return 200
+    else:
+        flash("User or design not found.", "warning")
+        return 404
+
+
+@experiments_blueprint.route("/design/<int:design_id>/share/group", methods=["POST"])
+def share_design_with_group(design_id):
+    group_id = request.form.get("group_id")
+    group = Group.get_group(group_id)
+    design = ExperimentalDesign.get_experimental_design_by_id(design_id)
+    if design.user_id != current_user.id:
+        flash("You are not allowed to share this design.", "warning")
+        return 403
+
+    if group and design:
+        design.share_with_group(group)
+        flash("Design shared with group successfully!", "success")
+        return 200
+    else:
+        flash("Group or design not found.", "warning")
+        return 404
+
+
+@experiments_blueprint.route("/design/<int:design_id>/unshare/user", methods=["POST"])
+def unshare_design_with_user(design_id):
+    user_id = request.form.get("user_id")
+    user = User.get_user_by_token(user_id)
+    design = ExperimentalDesign.get_experimental_design_by_id(design_id)
+
+    if design.user_id != current_user.id:
+        flash("You are not allowed to share this design.", "warning")
+        return 403
+
+    if user and design:
+        design.remove_user_share(user)
+        flash("Design unshared with user successfully!", "success")
+        return 200
+    else:
+        flash("User or design not found.", "warning")
+        return 404
+
+
+@experiments_blueprint.route("/design/<int:design_id>/unshare/group", methods=["POST"])
+def unshare_design_with_group(design_id):
+    group_id = request.form.get("group_id")
+    group = Group.query.get(group_id)
+    design = ExperimentalDesign.query.get(design_id)
+
+    if design.user_id != current_user.id:
+        flash("You are not allowed to share this design.", "warning")
+        return 403
+
+    if group and design:
+        design.remove_group_share(group)
+        flash("Design unshared with group successfully!", "success")
+        return 200
+    else:
+        flash("Group or design not found.", "warning")
+        return 404

@@ -15,7 +15,9 @@ from wtforms.validators import DataRequired, InputRequired
 
 class NewStationForm(FlaskForm):
     station_name = StringField("Name of the new station", [DataRequired()])
-    station_dns = StringField("DNS Name of the new station", [DataRequired()])
+    address = StringField(
+        "Address (IP/address Name) of the new station", [DataRequired()]
+    )
     station_location = StringField("Location of the new station", [DataRequired()])
     station_api_key = StringField("API-Key", [DataRequired()])
     submit = SubmitField("Create new")
@@ -48,7 +50,7 @@ class StationConfigForm(FlaskForm):
 
 
 class NewExperimentalDesign(FlaskForm):
-    design_name = StringField("Name of the new experimental desing", [DataRequired()])
+    design_name = StringField("Name of the new experimental design", [DataRequired()])
     station = SelectField("Select Station", coerce=int, validators=[InputRequired()])
     submit = SubmitField("Create Configuration")
 

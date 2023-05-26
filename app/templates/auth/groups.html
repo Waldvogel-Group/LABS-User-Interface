@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Groups</h1>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12 text-right">
+                <form class="form" role="form" action="{{ url_for('auth.add_group') }}" method="post">
+                    <div class="input-group ">
+                        <div class="input-group w-25">
+                            {{ form.name() }}
+                            <button type="submit" class="btn btn-primary">Add</button>
+                        </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Created by</th>
+                <th scope="col">Members</th>
+                <th scope="col">Add</th>
+                <th scope="col">Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+            <tr>
+                <td>{{ group.name }}</a></td>
+                <td>{{ group.get_owner().username }}</td>
+                <td>
+                    {% for user in group.get_users() %}
+                    {{ user.username }}
+                    <form class="form" action="{{ url_for('auth.group_remove_user', group_id=group.id) }}"
+                        method="POST">
+                        <input type="hidden" name="remove_user" value="{{ user.id }}">
+                        <input type="submit" value="Delete">
+                    </form>
+
+                    {% endfor %}
+                </td>
+                <td>
+                    <form class="form" action="{{ url_for('auth.group_add_user', group_id=group.id) }}" method="POST">
+                        <select aria-labelledby="dropdownMenuButton" name="add_user" id="add_user">
+                            {% for user in User.get_all_users() %}
+                            <option class="dropdown-item" href="#" value="{{user.id}}">{{user.username}}</a>
+                                {% endfor %}
+                        </select>
+                        <input type="submit" value="Submit">
+                    </form>
+                </td>
+                <td>
+                    <a href="{{ url_for('auth.delete_group', group_id=group.id) }}">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

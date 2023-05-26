@@ -14,7 +14,7 @@
     integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
   <link href="{{ url_for('static', filename='main.css') }}" rel="stylesheet" media="screen">
   {% block links %}{% endblock %}
-  {{ modals() }}
+
 </head>
 
 <body>
@@ -75,6 +75,7 @@
                 </a>
                 <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                   <li><a class="dropdown-item" href="{{ url_for('auth.userProfile') }}">Profile</a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('auth.groups') }}">Groups</a></li>
                   <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
 
                 </ul>

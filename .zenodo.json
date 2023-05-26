@@ -1,0 +1,20 @@
+{
+  "description": "User interface for the LABS project",
+  "license": "other-open",
+  "title": "LABS-User-Interface",
+  "version": "v0.2-beta",
+  "upload_type": "software",
+  "creators": [
+    {
+      "orcid": "0000-0003-4365-3557",
+      "affiliation": "Johannes Gutenberg University Mainz",
+      "name": "Hielscher, Maximilian M."
+    },
+    {
+      "orcid": "0000-0003-1450-9740",
+      "affiliation": "Johannes Gutenberg University Mainz",
+      "name": "Dörr, Maurice"
+    }
+  ],
+  "access_right": "open"
+}

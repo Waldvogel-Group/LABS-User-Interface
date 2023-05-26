@@ -41,7 +41,9 @@ def chart_data(deviceID):
     ### Initial Timestamp is none, to get all updates from start of the experiment
     timestamp = None
     # build request url
-    request_url = f"http://{ExperimentalStation.get_station_dns_address(deviceID)}/api/get_updates"
+    request_url = (
+        f"http://{ExperimentalStation.get_address_address(deviceID)}/api/get_updates"
+    )
 
     def get_updates(timestamp):
         while True:
@@ -66,7 +68,7 @@ def chart_data(deviceID):
 def experiment_table_data(deviceID):
     """returns generator for experiment tables and crawls for updates in the station"""
 
-    request_url = f"http://{ExperimentalStation.get_station_dns_address(deviceID)}/api/station_run_tables"
+    request_url = f"http://{ExperimentalStation.get_address_address(deviceID)}/api/station_run_tables"
 
     def get_updates():
         while True:
@@ -79,28 +81,17 @@ def experiment_table_data(deviceID):
     return Response(get_updates(), mimetype="text/event-stream")
 
 
-@monitoring_blueprint.route("/demo/api/station_run_tables", methods=["GET"])
-def station_run_tables():
-    r = requests.post("http://127.0.0.1:11123/api/station_run_tables")
-
-    return r.content
-
-
-#### New Development ####
-
-
 @monitoring_blueprint.route("/overview", methods=["GET", "POST"])
 def deviceOverview():
-    """Generates Device Overview, requests deviece list from API call. Uses experiments database information for list of devices and DNS adresses.
+    """Generates Device Overview, requests deviece list from API call. Uses experiments database information for list of devices and  adresses.
 
     Returns:
         render_template: renders a page for the user with Device information overview.
     """
-    # https://stackoverflow.com/questions/19963647/how-to-obtain-flask-request-json-data-as-dictionary
 
     def _helper(station):
         request_url = (
-            f"http://{station.get_station_dns_address(station.id)}/api/station_overview"
+            f"http://{station.get_address_address(station.id)}/api/station_overview"
         )
 
         try:
@@ -273,19 +264,19 @@ def get_active_experiment_parameter_value(station_id):
 
 
 @monitoring_blueprint.route(
-    "/api/start/<string:station_dns_name>", methods=["GET", "POST"]
+    "/api/start/<string:station_address>", methods=["GET", "POST"]
 )
-def api_start(station_dns_name):
-    request_url = f"http://{station_dns_name}/api/start"
+def api_start(station_address):
+    request_url = f"http://{station_address}/api/start"
     requests.post(request_url)
     return "", 204
 
 
 @monitoring_blueprint.route(
-    "/api/stop/<string:station_dns_name>", methods=["GET", "POST"]
+    "/api/stop/<string:station_address>", methods=["GET", "POST"]
 )
-def api_stop(station_dns_name):
-    request_url = f"http://{station_dns_name}/api/stop"
+def api_stop(station_address):
+    request_url = f"http://{station_address}/api/stop"
     requests.post(request_url)
     return "", 204
 
@@ -315,19 +306,19 @@ def get_station_list():
     return stations
 
 
-def get_station_dns_name(station_id):
-    """returns the DNS Adress corresponding to a station id
+def get_station_address(station_id):
+    """returns the Adress corresponding to a station id
 
     Args:
         station_id (int): Database ID for the station
 
     Returns:
-        str: DNS-Adress
+        str: Adress
     """
 
     station = ExperimentalStation.query.get_or_404(station_id)
 
-    return station.dns_name
+    return station.address
 
 
 def get_station_information(station_id, endpoint, *args, **kwargs):
@@ -341,8 +332,8 @@ def get_station_information(station_id, endpoint, *args, **kwargs):
         dict: Dictonary from endpoint json response data.
     """
 
-    # get corresponding DNS Adress for station_ID
-    request_url_base = get_station_dns_name(station_id)
+    # get corresponding  Adress for station_ID
+    request_url_base = get_station_address(station_id)
 
     # add requested endpoint
     request_url = f"http://{request_url_base}/api/{endpoint}"
@@ -374,8 +365,8 @@ def api_get_station_overview(station_id):
 
 @monitoring_blueprint.route("/api/monitoring/get_station_details/<int:station_id>")
 def api_get_station_details(station_id):
-    # get corresponding DNS Adress for station_ID
-    request_url_base = get_station_dns_name(station_id)
+    # get corresponding Adress for station_ID
+    request_url_base = get_station_address(station_id)
 
     # add endpoint for overview
     endpoint = "station_details"

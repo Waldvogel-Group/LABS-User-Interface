@@ -58,3 +58,20 @@ class ProfileUpdateForm(FlaskForm):
     short_ID = StringField("Your short ID", validators=[Length(2, 3)])
     email = StringField("Email Address", validators=[Email()])
     password = PasswordField("Password for verification", validators=[DataRequired()])
+
+
+class AddGroupForm(FlaskForm):
+    name = StringField(
+        "Group name",
+        validators=[DataRequired()],
+        render_kw={
+            "placeholder": "Name of the new group",
+            "class": "form-control me-2",
+        },
+    )
+    submit = SubmitField(
+        "Add",
+        render_kw={
+            "class": "btn btn-primary",
+        },
+    )

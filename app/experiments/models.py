@@ -1,8 +1,5 @@
 from datetime import datetime
-from enum import unique
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
-from sqlalchemy import select
 from .. import db
 from ..utils import ModelMixin
 import builtins
@@ -12,20 +9,17 @@ import io
 from requests.exceptions import HTTPError
 import pandas as pd
 from flask import (
-    Blueprint,
-    render_template,
     url_for,
     redirect,
     flash,
-    request,
-    app,
     Response,
     abort,
-    current_app,
-    session,
 )
-from numpy import isnan
 
+from ..auth.models import User
+
+
+### Association Tables ###
 
 Parameters_in_Routines = db.Table(
     "association_Parameters_in_Routines",
@@ -51,6 +45,8 @@ Routines_in_Stations = db.Table(
 
 
 class ExperimentalRoutines(db.Model, ModelMixin):
+    """This class is used to create experimental routines. Routines are not defined by the user but downloaded from a registred station. The user can then use the routines to create experiments."""
+
     __tablename__ = "experimental_routines"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -331,6 +327,11 @@ class ExperimentalDesign(db.Model, ModelMixin):
         lazy=True,
         cascade="all, delete-orphan",
     )
+    shared_users = db.relationship(
+        "User",
+        secondary="shared_designs",
+        backref=db.backref("shared_designs", lazy="dynamic"),
+    )
 
     @classmethod
     def add_experimental_design(cls, name, user_id, station_id):
@@ -350,14 +351,52 @@ class ExperimentalDesign(db.Model, ModelMixin):
 
     @classmethod
     def get_experimental_design_by_id(cls, id):
-        return cls.query.get(id)
+        return cls.query.get_or_404(id)
 
     @classmethod
     def get_station_id_by_design_id(cls, id):
         return cls.query.get_or_404(id).station_id
 
+    @classmethod
+    def get_designs_by_user(cls, user_id):
+        return cls.query.filter_by(user_id=user_id).all()
+
+    @classmethod
+    def get_shared_designs(cls, user_id):
+        return cls.query.filter(cls.shared_users.any(id=user_id)).all()
+
+    @classmethod
+    def get_all_designs_for_user(cls, user_id):
+        return cls.get_designs_by_user(user_id) + cls.get_shared_designs(user_id)
+
+    def get_experimental_stages(self):
+        return self.stages
+
     def get_experimental_station(self):
         return ExperimentalStation.get_station_by_id(self.station_id)
+
+    def get_owner_name(self):
+        return User.get_user_by_token(self.user_id).username
+
+    def share_with_user(self, user):
+        if user not in self.shared_users:
+            self.shared_users.append(user)
+            db.session.commit()
+
+    def remove_user_share(self, user):
+        if user in self.shared_users:
+            self.shared_users.remove(user)
+            db.session.commit()
+
+    def share_with_group(self, group):
+        if group not in self.shared_groups:
+            self.shared_groups.append(group)
+            db.session.commit()
+
+    def remove_group_share(self, group):
+        if group in self.shared_groups:
+            self.shared_groups.remove(group)
+            db.session.commit()
 
 
 class Stage(db.Model, ModelMixin):
@@ -389,8 +428,28 @@ class Stage(db.Model, ModelMixin):
     def get_design(cls, id):
         return cls.query.get_or_404(id)
 
+    @classmethod
+    def add_stage(cls, name, user_id, experimental_Routine_id, experimental_design_id):
+        safe_name = (
+            name.replace("\t", " ")
+            .replace("\n", " ")
+            .replace("\r", " ")
+            .replace("  ", "")
+        )
+        stage = cls(
+            name=safe_name,
+            user_id=user_id,
+            experimental_Routine_id=experimental_Routine_id,
+            experimental_design_id=experimental_design_id,
+        )
+        stage.save()
+        flash("Successfuly added new experimental stage.", "success")
+
     def get_designs(self):
         return self.query.all()
+
+    def get_owner_name(self):
+        return User.get_user_by_token(self.user_id).username
 
     def update_design(self, name):
         self.name = name
@@ -424,6 +483,9 @@ class Stage(db.Model, ModelMixin):
 
     def get_experimental_routine(self):
         return ExperimentalRoutines.get_routine(self.experimental_Routine_id)
+
+    def get_experimental_routine_name(self):
+        return ExperimentalRoutines.get_routine_name_by_id(self.experimental_Routine_id)
 
     def get_designs_by_user(self, user_id):
         return self.query.filter_by(user_id=user_id).all()
@@ -681,7 +743,7 @@ class Stage(db.Model, ModelMixin):
             joined_data = experiment_meta_data | experiment_data
 
             try:
-                request_url = f"http://{station.dns_name}/api/add_experiment"
+                request_url = f"http://{station.address}/api/add_experiment"
                 r = requests.post(request_url, data=joined_data)
                 r.raise_for_status()
 
@@ -781,7 +843,7 @@ class ExperimentalStation(db.Model, ModelMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(60), unique=False, nullable=False)
-    dns_name = db.Column(db.String(60), unique=False, nullable=False)
+    address = db.Column(db.String(60), unique=False, nullable=False)
     api_key = db.Column(db.String(60), unique=False, nullable=False)
     location = db.Column(db.String(60), unique=False, nullable=False)
     experiments_available = db.relationship(
@@ -796,9 +858,9 @@ class ExperimentalStation(db.Model, ModelMixin):
         return cls.query.get_or_404(station_id)
 
     @classmethod
-    def get_station_dns_address(cls, station_id):
+    def get_address_address(cls, station_id):
         station = cls.query.get_or_404(station_id)
-        return station.dns_name
+        return station.address
 
     @classmethod
     def get_all_stations(cls):
@@ -821,10 +883,21 @@ class ExperimentalStation(db.Model, ModelMixin):
         self.experiments_available.append(routine)
         db.session.commit()
 
+    def unregister_routine_in_station(self, routine):
+        self.experiments_available.remove(routine)
+        db.session.commit()
+
+    def update(self, name, address, api_key, location):
+        self.name = name
+        self.address = address
+        self.api_key = api_key
+        self.location = location
+        self.save()
+
     @classmethod
     def get_active_experiment_parameters(cls, station_id):
         request_url = (
-            f"http://{cls.get_station_dns_address(station_id)}/api/station_run_tables"
+            f"http://{cls.get_address_address(station_id)}/api/station_run_tables"
         )
         r = requests.get(request_url)
         json_data_stream = json.loads(r.content.decode())
@@ -836,7 +909,7 @@ class ExperimentalStation(db.Model, ModelMixin):
     @classmethod
     def get_active_experiment_value_for_parameter(cls, station_id, parameter_name):
         request_url = (
-            f"http://{cls.get_station_dns_address(station_id)}/api/station_run_tables"
+            f"http://{cls.get_address_address(station_id)}/api/station_run_tables"
         )
         r = requests.get(request_url)
         json_data_stream = json.loads(r.content.decode())

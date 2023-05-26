@@ -1,7 +1,7 @@
 #!/user/bin/env python
 import click
-from app import create_app, db, models, forms
-from tests import test_app
+from app import models, forms, create_app, db
+
 
 app = create_app()
 
@@ -17,17 +17,15 @@ def get_context():
 def create_db():
     """Create the configured database."""
     db.create_all()
-    print('***** Datebase created *****')
+    print("***** Datebase created *****")
 
 
 @app.cli.command()
-@click.confirmation_option(prompt='Drop all database tables?')
+@click.confirmation_option(prompt="Drop all database tables?")
 def drop_db():
     """Drop the current database."""
     db.drop_all()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run()
-
-    

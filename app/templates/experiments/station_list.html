@@ -11,7 +11,7 @@
       <thead>
         <tr>
           <th scope="col">Name</th>
-          <th scope="col">DNS Name</th>
+          <th scope="col">Adress</th>
           <th scope="col">Location</th>
           <th scope="col">API-Key</th>
           <th scope="col"></th>
@@ -22,7 +22,7 @@
         {% for row in rows %}
         <tr>
           <td>{{ row.name }}</a></td>
-          <td>{{ row.dns_name }}</td>
+          <td>{{ row.address }}</td>
           <td>{{ row.location }}</td>
           <td>{{ row.api_key }}</td>
           <td><a href=" {{ url_for('experiments.update_station', station_id= row.id) }}"
